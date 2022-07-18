@@ -2,6 +2,7 @@ package main
 
 import (
 	"reflect"
+	"sort"
 	"testing"
 )
 
@@ -164,7 +165,8 @@ func TestGetSectionNames(t *testing.T) {
 	}}
 	got := parser.GetSectionNames()
 	want := []string{"owner", "database"}
-
+	sort.Strings(got)
+	sort.Strings(want)
 	if !reflect.DeepEqual(got, want) {
 		t.Errorf("got %v want %v", got, want)
 	}
