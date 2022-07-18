@@ -4,35 +4,55 @@ import (
 	"bufio"
 	"errors"
 	"fmt"
+	"os"
 	"strings"
 )
 
-type ParsedText map[string]map[string]string
+type Parser struct {
+	ini map[string]map[string]string
+}
 
-func (p ParsedText) GetSectionNames() []string {
+func (p *Parser) LoadFromString(iniText string) (err error) {
+	p.ini, err = Parse(iniText)
+	return err
+}
+func (p *Parser) LoadFromFile(inifile string) (err error) {
+	dat, err := os.ReadFile(inifile)
+	if err != nil {
+		panic(err)
+	}
+	iniText := string(dat)
+	if err != nil {
+		panic(err)
+	}
+	p.ini, err = Parse(iniText)
+	return err
+}
+
+func (p *Parser) GetSectionNames() []string {
 	keys := []string{}
-	for key, _ := range p {
+	for key, _ := range p.ini {
 		keys = append(keys, key)
 	}
 	return keys
 }
-func (p ParsedText) Get(section string) []string {
+func (p *Parser) Get(section string) []string {
 
 	keys := []string{}
-	for key, _ := range p[section] {
+	for key, _ := range p.ini[section] {
 		keys = append(keys, key)
 	}
 
 	return keys
 }
-func (p ParsedText) Set(section, key, value string) error {
-	if _, ok := p[section]; !ok {
+func (p *Parser) Set(section, key, value string) error {
+	if _, ok := p.ini[section]; !ok {
 		return errors.New("section not found")
 	}
-	if _, ok := p[section][key]; !ok {
+	if _, ok := p.ini[section][key]; !ok {
 		return errors.New("key not found")
 	}
-	p[section][key] = value
+	p.ini[section][key] = value
 	return nil
 }
 
@@ -74,7 +94,7 @@ func ParseKeyValue(keyValueLine string) (string, string, error) {
 	return key, value, nil
 }
 
-func Parse(iniText string) (ParsedText, error) {
+func Parse(iniText string) (map[string]map[string]string, error) {
 	scanner := bufio.NewScanner(strings.NewReader(iniText))
 	parsedText := make(map[string]map[string]string)
 	currentSection := ""
@@ -112,17 +132,18 @@ func Parse(iniText string) (ParsedText, error) {
 	return parsedText, nil
 }
 func main() {
-	iniText := `; last modified 1 April 2001 by John Doe
-[owner]
-name = John Doe
-organization = Acme Widgets Inc.
+	// 	iniText := `; last modified 1 April 2001 by John Doe
+	// [owner]
+	// name = John Doe
+	// organization = Acme Widgets Inc.
 
-[database]
-; use IP address in case network name resolution is not working
-server = 192.0.2.62     
-port = 143
-file = "payroll.dat"`
-	parsedText, _ := Parse(iniText)
-	fmt.Println(parsedText.GetSectionNames())
-	fmt.Println(parsedText.Get("database"))
+	// [database]
+	// ; use IP address in case network name resolution is not working
+	// server = 192.0.2.62
+	// port = 143
+	// file = "payroll.dat"`
+	parser := Parser{}
+	parser.LoadFromFile("file.ini")
+	fmt.Println(parser.GetSectionNames())
+	fmt.Println(parser.Get("database"))
 }

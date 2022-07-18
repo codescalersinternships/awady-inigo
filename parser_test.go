@@ -134,21 +134,21 @@ server = 192.0.2.62
 port = 143
 file = "payroll.dat"`
 	got, _ := Parse(iniText)
-	want := ParsedText{
+	want := map[string]map[string]string{
 		"owner":    {"name": "John Doe", "organization": "Acme Widgets Inc."},
 		"database": {"server": "192.0.2.62", "port": "143", "file": "\"payroll.dat\""},
 	}
 	if !reflect.DeepEqual(got, want) {
-		t.Errorf("got %v want\n %v", got, want)
+		t.Errorf("got %#v want\n %#v", got, want)
 	}
 }
 
 func TestGetSectionNames(t *testing.T) {
-	parsedText := ParsedText{
+	parser := Parser{map[string]map[string]string{
 		"owner":    {"name": "John Doe", "organization": "Acme Widgets Inc."},
 		"database": {"server": "192.0.2.62", "port": "143", "file": "\"payroll.dat\""},
-	}
-	got := parsedText.GetSectionNames()
+	}}
+	got := parser.GetSectionNames()
 	want := []string{"owner", "database"}
 
 	if !reflect.DeepEqual(got, want) {
@@ -156,11 +156,11 @@ func TestGetSectionNames(t *testing.T) {
 	}
 }
 func TestGet(t *testing.T) {
-	parsedText := ParsedText{
+	parser := Parser{map[string]map[string]string{
 		"owner":    {"name": "John Doe", "organization": "Acme Widgets Inc."},
 		"database": {"server": "192.0.2.62", "port": "143", "file": "\"payroll.dat\""},
-	}
-	got := parsedText.Get("owner")
+	}}
+	got := parser.Get("owner")
 	want := []string{"name", "organization"}
 
 	if !reflect.DeepEqual(got, want) {
@@ -169,31 +169,31 @@ func TestGet(t *testing.T) {
 }
 func TestSet(t *testing.T) {
 	t.Run("changed \"name\" key in \"owner\" section", func(t *testing.T) {
-		parsedText := ParsedText{
+		parser := Parser{map[string]map[string]string{
 			"owner":    {"name": "John Doe", "organization": "Acme Widgets Inc."},
 			"database": {"server": "192.0.2.62", "port": "143", "file": "\"payroll.dat\""},
-		}
-		err := parsedText.Set("owner", "name", "Abdo")
+		}}
+		err := parser.Set("owner", "name", "Abdo")
 
-		want := ParsedText{
+		want := Parser{map[string]map[string]string{
 			"owner":    {"name": "Abdo", "organization": "Acme Widgets Inc."},
 			"database": {"server": "192.0.2.62", "port": "143", "file": "\"payroll.dat\""},
-		}
+		}}
 		if err != nil {
 			t.Fatalf("should not get an error but got: %q", err.Error())
 		}
 
-		if !reflect.DeepEqual(parsedText, want) {
-			t.Errorf("got %v want %v", parsedText, want)
+		if !reflect.DeepEqual(parser, want) {
+			t.Errorf("got %v want %v", parser, want)
 		}
 
 	})
 	t.Run("changed \"name\" key in non-existing section", func(t *testing.T) {
-		parsedText := ParsedText{
+		parser := Parser{map[string]map[string]string{
 			"owner":    {"name": "John Doe", "organization": "Acme Widgets Inc."},
 			"database": {"server": "192.0.2.62", "port": "143", "file": "\"payroll.dat\""},
-		}
-		err := parsedText.Set("owne", "name", "Abdo")
+		}}
+		err := parser.Set("owne", "name", "Abdo")
 
 		if err == nil {
 			t.Fatalf("should get an error section not found but got none")
@@ -201,11 +201,11 @@ func TestSet(t *testing.T) {
 
 	})
 	t.Run("changed non-existing key in \"owner\" section", func(t *testing.T) {
-		parsedText := ParsedText{
+		parser := Parser{map[string]map[string]string{
 			"owner":    {"name": "John Doe", "organization": "Acme Widgets Inc."},
 			"database": {"server": "192.0.2.62", "port": "143", "file": "\"payroll.dat\""},
-		}
-		err := parsedText.Set("owner", "names", "Abdo")
+		}}
+		err := parser.Set("owner", "names", "Abdo")
 
 		if err == nil {
 			t.Fatalf("should get an error key not found but got none")
