@@ -60,6 +60,17 @@ func (p *Parser) Set(section, key, value string) error {
 	return nil
 }
 
+func (p *Parser) ToString() string {
+	iniText := ""
+	for section, keyValue := range p.ini {
+		iniText += "[" + section + "]\n"
+		for key, value := range keyValue {
+			iniText += key + " = " + value + "\n"
+		}
+	}
+	return iniText
+}
+
 func LineType(line string) (string, error) {
 	if len(line) == 0 {
 		return "emptyLine", nil
@@ -148,6 +159,5 @@ func main() {
 	// file = "payroll.dat"`
 	parser := Parser{}
 	parser.LoadFromFile("file.ini")
-	fmt.Println(parser.GetSectionNames())
-	fmt.Println(parser.Get("database"))
+	fmt.Println(parser.ToString())
 }
