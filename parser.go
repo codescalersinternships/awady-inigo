@@ -86,15 +86,11 @@ func (p *Parser) Get(section, key string) (string, error) {
 
 // Set sets the value of a key in section to the ini data.
 // If no section exists with input section name a new section will be created and same for keys.
-func (p *Parser) Set(section, key, value string) error {
+func (p *Parser) Set(section, key, value string) {
 	if _, ok := p.ini[section]; !ok {
-		return ErrSectionNotFound
-	}
-	if _, ok := p.ini[section][key]; !ok {
-		return ErrKeyNotFound
+		p.ini[section] = make(map[string]string)
 	}
 	p.ini[section][key] = value
-	return nil
 }
 
 // ToString converts the ini data to string in the ini format.

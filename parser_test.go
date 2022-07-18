@@ -259,14 +259,13 @@ func TestSet(t *testing.T) {
 			"owner":    {"name": "John Doe", "organization": "Acme Widgets Inc."},
 			"database": {"server": "192.0.2.62", "port": "143", "file": "\"payroll.dat\""},
 		}}
-		err := parser.Set("owner", "name", "Abdo")
+		parser.Set("owner", "name", "Abdo")
 
 		want := Parser{map[string]map[string]string{
 			"owner":    {"name": "Abdo", "organization": "Acme Widgets Inc."},
 			"database": {"server": "192.0.2.62", "port": "143", "file": "\"payroll.dat\""},
 		}}
 
-		assertNoError(t, err)
 		if !reflect.DeepEqual(parser, want) {
 			t.Errorf("got %v want %v", parser, want)
 		}
@@ -277,10 +276,16 @@ func TestSet(t *testing.T) {
 			"owner":    {"name": "John Doe", "organization": "Acme Widgets Inc."},
 			"database": {"server": "192.0.2.62", "port": "143", "file": "\"payroll.dat\""},
 		}}
-		err := parser.Set("owne", "name", "Abdo")
-		want := ErrSectionNotFound
+		parser.Set("owne", "name", "Abdo")
+		want := Parser{map[string]map[string]string{
+			"owner":    {"name": "John Doe", "organization": "Acme Widgets Inc."},
+			"database": {"server": "192.0.2.62", "port": "143", "file": "\"payroll.dat\""},
+			"owne":     {"name": "Abdo"},
+		}}
 
-		assertError(t, err, want)
+		if !reflect.DeepEqual(parser, want) {
+			t.Errorf("got %v want %v", parser, want)
+		}
 
 	})
 	t.Run("changing value using non-existing key", func(t *testing.T) {
@@ -288,10 +293,15 @@ func TestSet(t *testing.T) {
 			"owner":    {"name": "John Doe", "organization": "Acme Widgets Inc."},
 			"database": {"server": "192.0.2.62", "port": "143", "file": "\"payroll.dat\""},
 		}}
-		err := parser.Set("owner", "names", "Abdo")
-		want := ErrKeyNotFound
+		parser.Set("owner", "names", "Abdo")
+		want := Parser{map[string]map[string]string{
+			"owner":    {"name": "John Doe", "organization": "Acme Widgets Inc.", "names": "Abdo"},
+			"database": {"server": "192.0.2.62", "port": "143", "file": "\"payroll.dat\""},
+		}}
 
-		assertError(t, err, want)
+		if !reflect.DeepEqual(parser, want) {
+			t.Errorf("got %v want %v", parser, want)
+		}
 
 	})
 }
