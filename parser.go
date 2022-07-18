@@ -25,6 +25,16 @@ func (p ParsedText) Get(section string) []string {
 
 	return keys
 }
+func (p ParsedText) Set(section, key, value string) error {
+	if _, ok := p[section]; !ok {
+		return errors.New("section not found")
+	}
+	if _, ok := p[section][key]; !ok {
+		return errors.New("key not found")
+	}
+	p[section][key] = value
+	return nil
+}
 
 func LineType(line string) (string, error) {
 	if len(line) == 0 {
