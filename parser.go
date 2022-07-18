@@ -7,6 +7,15 @@ import (
 	"strings"
 )
 
+var (
+	ErrSectionNotFound  = errors.New("section not found")
+	ErrKeyNotFound      = errors.New("key not found")
+	ErrEmptySectionName = errors.New("section name can't be empty")
+	ErrEmptyKey         = errors.New("key can't be empty")
+	ErrUnsportedLine    = errors.New("unsupported line")
+	ErrGlobalKey        = errors.New("can't parse global keys")
+)
+
 type Parser struct {
 	ini map[string]map[string]string
 }
@@ -18,12 +27,9 @@ func (p *Parser) LoadFromString(iniText string) (err error) {
 func (p *Parser) LoadFromFile(iniFile string) (err error) {
 	dat, err := os.ReadFile(iniFile)
 	if err != nil {
-		panic(err)
+		return err
 	}
 	iniText := string(dat)
-	if err != nil {
-		panic(err)
-	}
 	p.ini, err = Parse(iniText)
 	return err
 }
@@ -44,26 +50,27 @@ func (p *Parser) GetSections() map[string]map[string]string {
 
 func (p *Parser) GetSectionNames() []string {
 	keys := []string{}
-	for key, _ := range p.ini {
+	for key := range p.ini {
 		keys = append(keys, key)
 	}
 	return keys
 }
-func (p *Parser) Get(section string) []string {
+func (p *Parser) Get(section, key string) (string, error) {
 
-	keys := []string{}
-	for key, _ := range p.ini[section] {
-		keys = append(keys, key)
+	if _, ok := p.ini[section]; !ok {
+		return "", ErrSectionNotFound
 	}
-
-	return keys
+	if _, ok := p.ini[section][key]; !ok {
+		return "", ErrKeyNotFound
+	}
+	return p.ini[section][key], nil
 }
 func (p *Parser) Set(section, key, value string) error {
 	if _, ok := p.ini[section]; !ok {
-		return errors.New("section not found")
+		return ErrSectionNotFound
 	}
 	if _, ok := p.ini[section][key]; !ok {
-		return errors.New("key not found")
+		return ErrKeyNotFound
 	}
 	p.ini[section][key] = value
 	return nil
@@ -80,28 +87,36 @@ func (p *Parser) ToString() string {
 	return iniText
 }
 
-func LineType(line string) (string, error) {
+const (
+	emptyLine int = iota
+	sectionLine
+	commentLine
+	keyValueLine
+	unsupportedLine
+)
+
+func LineType(line string) (int, error) {
 	if len(line) == 0 {
-		return "emptyLine", nil
+		return emptyLine, nil
 	}
 	if (line[0] == '[') && (strings.Count(line, "]") == 1) &&
 		(strings.Count(line, "[") == 1) && (line[len(line)-1] == ']') {
-		return "section", nil
-	} else if strings.Count(line, "=") == 1 {
-		return "keyValue", nil
+		return sectionLine, nil
 	} else if line[0] == ';' {
-		return "comment", nil
+		return commentLine, nil
+	} else if strings.Count(line, "=") > 0 {
+		return keyValueLine, nil
 	} else if line[0] == '\n' {
-		return "emptyLine", nil
+		return emptyLine, nil
 	} else {
-		return "", errors.New("Unkown Line")
+		return unsupportedLine, ErrUnsportedLine
 	}
 
 }
 
 func ParseSection(sectionLine string) (string, error) {
 	if len(sectionLine) == 2 {
-		return "", errors.New("section can't be empty")
+		return "", ErrEmptySectionName
 	}
 	return sectionLine[1 : len(sectionLine)-1], nil
 }
@@ -111,7 +126,7 @@ func ParseKeyValue(keyValueLine string) (string, string, error) {
 	key := keyValueLine[0:i]
 	key = strings.TrimSpace(key)
 	if len(key) == 0 {
-		return "", "", errors.New("key can't be empty")
+		return "", "", ErrEmptyKey
 	}
 	value := keyValueLine[i+1:]
 	value = strings.TrimSpace(value)
@@ -130,14 +145,14 @@ func Parse(iniText string) (map[string]map[string]string, error) {
 			return parsedText, err
 		}
 		switch lineType {
-		case "section":
+		case sectionLine:
 			currentSection, err = ParseSection(scanner.Text())
 			if err != nil {
 				return parsedText, err
 			}
 			parsedText[currentSection] = make(map[string]string)
 			continue
-		case "keyValue":
+		case keyValueLine:
 			key, value, err = ParseKeyValue(scanner.Text())
 			if err != nil {
 				return parsedText, err
@@ -149,7 +164,7 @@ func Parse(iniText string) (map[string]map[string]string, error) {
 			return parsedText, err
 		}
 		if currentSection == "" {
-			return parsedText, errors.New("keys have to be under a section")
+			return parsedText, ErrGlobalKey
 		}
 		parsedText[currentSection][key] = value
 	}

@@ -11,36 +11,35 @@ func TestLineType(t *testing.T) {
 
 		line := "[owner]"
 		got, err := LineType(line)
-		want := "section"
+		want := sectionLine
 
+		assertNoError(t, err)
 		if got != want {
 			t.Errorf("got %q want %q", got, want)
 		}
-		if err != nil {
-			t.Fatalf("got an error but should get none")
-		}
+
 	})
 
 	t.Run("keyValue line", func(t *testing.T) {
 
 		line := "name = John Doe"
 		got, err := LineType(line)
-		want := "keyValue"
+		want := keyValueLine
 
+		assertNoError(t, err)
 		if got != want {
 			t.Errorf("got %q want %q", got, want)
 		}
-		if err != nil {
-			t.Fatalf("got an error but should get none")
-		}
+
 	})
 
 	t.Run("comment line", func(t *testing.T) {
 
 		line := "; last modified 1 April 2001 by John Doe"
-		got, _ := LineType(line)
-		want := "comment"
+		got, err := LineType(line)
+		want := commentLine
 
+		assertNoError(t, err)
 		if got != want {
 			t.Errorf("got %q want %q", got, want)
 		}
@@ -49,24 +48,39 @@ func TestLineType(t *testing.T) {
 	t.Run("empty line", func(t *testing.T) {
 
 		line := "\n"
-		got, _ := LineType(line)
-		want := "emptyLine"
+		got, err := LineType(line)
+		want := emptyLine
 
+		assertNoError(t, err)
 		if got != want {
 			t.Errorf("got %q want %q", got, want)
 		}
 
 	})
-	t.Run("unknown line", func(t *testing.T) {
+	t.Run("unsupported line", func(t *testing.T) {
 
 		line := "[section]]"
+		_, err := LineType(line)
+		want := ErrUnsportedLine
+
+		assertError(t, err, want)
+	})
+
+	t.Run("comment at the end of the line", func(t *testing.T) {
+
+		line := "[section] ;testing"
+		_, err := LineType(line)
+		want := ErrUnsportedLine
+
+		assertError(t, err, want)
+	})
+	t.Run("line with more than one equal sign", func(t *testing.T) {
+
+		line := "key = val=ue"
 		got, err := LineType(line)
-		want := ""
+		want := keyValueLine
 
-		if err == nil {
-			t.Fatalf("should get an Unkown error")
-		}
-
+		assertNoError(t, err)
 		if got != want {
 			t.Errorf("got %q want %q", got, want)
 		}
@@ -76,9 +90,10 @@ func TestLineType(t *testing.T) {
 func TestParseSection(t *testing.T) {
 	t.Run("section line", func(t *testing.T) {
 		line := "[section]"
-		got, _ := ParseSection(line)
+		got, err := ParseSection(line)
 		want := "section"
 
+		assertNoError(t, err)
 		if got != want {
 			t.Errorf("got %q want %q", got, want)
 		}
@@ -87,10 +102,8 @@ func TestParseSection(t *testing.T) {
 	t.Run("empty section line", func(t *testing.T) {
 		line := "[]"
 		_, err := ParseSection(line)
-
-		if err == nil {
-			t.Fatalf("should get an error: section can't be empty")
-		}
+		want := ErrEmptySectionName
+		assertError(t, err, want)
 
 	})
 }
@@ -102,10 +115,7 @@ func TestParseKeyValue(t *testing.T) {
 		key := "name"
 		value := "John Doe"
 
-		if err != nil {
-			t.Errorf("got an error but should get none")
-		}
-
+		assertNoError(t, err)
 		if gotKey != key || gotValue != value {
 			t.Errorf("got %v want %v", gotKey, key)
 		}
@@ -114,9 +124,21 @@ func TestParseKeyValue(t *testing.T) {
 	t.Run("empty key in keyValue Line", func(t *testing.T) {
 		line := " = John Doe"
 		_, _, err := ParseKeyValue(line)
+		want := ErrEmptyKey
 
-		if err == nil {
-			t.Errorf("should get an error: key can't be empty")
+		assertError(t, err, want)
+
+	})
+
+	t.Run("empty value in keyValue Line", func(t *testing.T) {
+		line := "name = "
+		gotKey, gotValue, err := ParseKeyValue(line)
+		key := "name"
+		value := ""
+
+		assertNoError(t, err)
+		if gotKey != key || gotValue != value {
+			t.Errorf("got %v want %v", gotKey, key)
 		}
 
 	})
@@ -124,7 +146,8 @@ func TestParseKeyValue(t *testing.T) {
 }
 
 func TestParse(t *testing.T) {
-	iniText := `; last modified 1 April 2001 by John Doe
+	t.Run("ini text", func(t *testing.T) {
+		iniText := `; last modified 1 April 2001 by John Doe
 [owner]
 name = John Doe
 organization = Acme Widgets Inc.
@@ -134,14 +157,37 @@ organization = Acme Widgets Inc.
 server = 192.0.2.62     
 port = 143
 file = "payroll.dat"`
-	got, _ := Parse(iniText)
-	want := map[string]map[string]string{
-		"owner":    {"name": "John Doe", "organization": "Acme Widgets Inc."},
-		"database": {"server": "192.0.2.62", "port": "143", "file": "\"payroll.dat\""},
-	}
-	if !reflect.DeepEqual(got, want) {
-		t.Errorf("got %#v want\n %#v", got, want)
-	}
+		got, err := Parse(iniText)
+		want := map[string]map[string]string{
+			"owner":    {"name": "John Doe", "organization": "Acme Widgets Inc."},
+			"database": {"server": "192.0.2.62", "port": "143", "file": "\"payroll.dat\""},
+		}
+
+		assertNoError(t, err)
+		if !reflect.DeepEqual(got, want) {
+			t.Errorf("got %#v want\n %#v", got, want)
+		}
+
+	})
+
+	t.Run("ini text with global keys", func(t *testing.T) {
+		iniText := `; last modified 1 April 2001 by John Doe
+name = Test
+[owner]
+name = John Doe
+organization = Acme Widgets Inc.
+
+[database]
+; use IP address in case network name resolution is not working
+server = 192.0.2.62     
+port = 143
+file = "payroll.dat"`
+		_, err := Parse(iniText)
+		want := ErrGlobalKey
+
+		assertError(t, err, want)
+
+	})
 }
 
 func TestGetSections(t *testing.T) {
@@ -172,19 +218,43 @@ func TestGetSectionNames(t *testing.T) {
 	}
 }
 func TestGet(t *testing.T) {
-	parser := Parser{map[string]map[string]string{
-		"owner":    {"name": "John Doe", "organization": "Acme Widgets Inc."},
-		"database": {"server": "192.0.2.62", "port": "143", "file": "\"payroll.dat\""},
-	}}
-	got := parser.Get("owner")
-	want := []string{"name", "organization"}
+	t.Run("getting value using key and section", func(t *testing.T) {
+		parser := Parser{map[string]map[string]string{
+			"owner":    {"name": "John Doe", "organization": "Acme Widgets Inc."},
+			"database": {"server": "192.0.2.62", "port": "143", "file": "\"payroll.dat\""},
+		}}
+		got, err := parser.Get("owner", "name")
+		want := "John Doe"
 
-	if !reflect.DeepEqual(got, want) {
-		t.Errorf("got %v want %v", got, want)
-	}
+		assertNoError(t, err)
+		if got != want {
+			t.Errorf("got %q want %q", got, want)
+		}
+
+	})
+	t.Run("getting value using non-existing section", func(t *testing.T) {
+		parser := Parser{map[string]map[string]string{
+			"owner":    {"name": "John Doe", "organization": "Acme Widgets Inc."},
+			"database": {"server": "192.0.2.62", "port": "143", "file": "\"payroll.dat\""},
+		}}
+		_, err := parser.Get("test", "name")
+		want := ErrSectionNotFound
+
+		assertError(t, err, want)
+	})
+	t.Run("getting value using non-existing key", func(t *testing.T) {
+		parser := Parser{map[string]map[string]string{
+			"owner":    {"name": "John Doe", "organization": "Acme Widgets Inc."},
+			"database": {"server": "192.0.2.62", "port": "143", "file": "\"payroll.dat\""},
+		}}
+		_, err := parser.Get("owner", "data")
+		want := ErrKeyNotFound
+
+		assertError(t, err, want)
+	})
 }
 func TestSet(t *testing.T) {
-	t.Run("changed \"name\" key in \"owner\" section", func(t *testing.T) {
+	t.Run("changing value using key in section", func(t *testing.T) {
 		parser := Parser{map[string]map[string]string{
 			"owner":    {"name": "John Doe", "organization": "Acme Widgets Inc."},
 			"database": {"server": "192.0.2.62", "port": "143", "file": "\"payroll.dat\""},
@@ -195,37 +265,67 @@ func TestSet(t *testing.T) {
 			"owner":    {"name": "Abdo", "organization": "Acme Widgets Inc."},
 			"database": {"server": "192.0.2.62", "port": "143", "file": "\"payroll.dat\""},
 		}}
-		if err != nil {
-			t.Fatalf("should not get an error but got: %q", err.Error())
-		}
 
+		assertNoError(t, err)
 		if !reflect.DeepEqual(parser, want) {
 			t.Errorf("got %v want %v", parser, want)
 		}
 
 	})
-	t.Run("changed \"name\" key in non-existing section", func(t *testing.T) {
+	t.Run("changing value in non-existing section", func(t *testing.T) {
 		parser := Parser{map[string]map[string]string{
 			"owner":    {"name": "John Doe", "organization": "Acme Widgets Inc."},
 			"database": {"server": "192.0.2.62", "port": "143", "file": "\"payroll.dat\""},
 		}}
 		err := parser.Set("owne", "name", "Abdo")
+		want := ErrSectionNotFound
 
-		if err == nil {
-			t.Fatalf("should get an error section not found but got none")
-		}
+		assertError(t, err, want)
 
 	})
-	t.Run("changed non-existing key in \"owner\" section", func(t *testing.T) {
+	t.Run("changing value using non-existing key", func(t *testing.T) {
 		parser := Parser{map[string]map[string]string{
 			"owner":    {"name": "John Doe", "organization": "Acme Widgets Inc."},
 			"database": {"server": "192.0.2.62", "port": "143", "file": "\"payroll.dat\""},
 		}}
 		err := parser.Set("owner", "names", "Abdo")
+		want := ErrKeyNotFound
 
-		if err == nil {
-			t.Fatalf("should get an error key not found but got none")
-		}
+		assertError(t, err, want)
 
 	})
+}
+
+func TestToString(t *testing.T) {
+	parser := Parser{}
+	parser.LoadFromFile("file.ini")
+
+	got, err := Parse(parser.ToString())
+	want := map[string]map[string]string{
+		"owner":    {"name": "John Doe", "organization": "Acme Widgets Inc."},
+		"database": {"server": "192.0.2.62", "port": "143", "file": "\"payroll.dat\""},
+	}
+
+	assertNoError(t, err)
+	if !reflect.DeepEqual(want, got) {
+		t.Errorf("got %v want %v", got, want)
+	}
+}
+
+func assertNoError(t testing.TB, got error) {
+	t.Helper()
+	if got != nil {
+		t.Fatalf("got an error:%s but didn't want one", got)
+	}
+}
+
+func assertError(t testing.TB, got error, want error) {
+	t.Helper()
+	if got == nil {
+		t.Fatal("didn't get an error but wanted one")
+	}
+
+	if got != want {
+		t.Errorf("got %s, want %s", got, want)
+	}
 }
