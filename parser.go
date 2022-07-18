@@ -3,7 +3,6 @@ package main
 import (
 	"bufio"
 	"errors"
-	"fmt"
 	"os"
 	"strings"
 )
@@ -16,8 +15,8 @@ func (p *Parser) LoadFromString(iniText string) (err error) {
 	p.ini, err = Parse(iniText)
 	return err
 }
-func (p *Parser) LoadFromFile(inifile string) (err error) {
-	dat, err := os.ReadFile(inifile)
+func (p *Parser) LoadFromFile(iniFile string) (err error) {
+	dat, err := os.ReadFile(iniFile)
 	if err != nil {
 		panic(err)
 	}
@@ -27,6 +26,16 @@ func (p *Parser) LoadFromFile(inifile string) (err error) {
 	}
 	p.ini, err = Parse(iniText)
 	return err
+}
+
+func (p *Parser) SaveToFile(outputFile string) (err error) {
+	file, err := os.Create(outputFile)
+	if err != nil {
+		panic(err)
+	}
+	file.WriteString(p.ToString())
+	file.Close()
+	return nil
 }
 
 func (p *Parser) GetSections() map[string]map[string]string {
@@ -158,6 +167,7 @@ func main() {
 	// port = 143
 	// file = "payroll.dat"`
 	parser := Parser{}
-	parser.LoadFromFile("file.ini")
-	fmt.Println(parser.ToString())
+	parser.LoadFromFile("fil.ini")
+	parser.SaveToFile("output.ini")
+
 }
