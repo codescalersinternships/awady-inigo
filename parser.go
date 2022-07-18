@@ -16,14 +16,22 @@ var (
 	ErrGlobalKey        = errors.New("can't parse global keys")
 )
 
+//Parser is a struct which parses and holds ini data.
+//It can import and export the data and access sections, keys and values from the parsed ini data.
+//It can also manipulate the parsed data.
 type Parser struct {
 	ini map[string]map[string]string
 }
 
+// LoadFromString loads and parses ini from iniText.
+// It returns any parsing error encountered.
 func (p *Parser) LoadFromString(iniText string) (err error) {
 	p.ini, err = Parse(iniText)
 	return err
 }
+
+// LoadFromFile loads and parses ini from iniFile.
+// It returns any parsing error encountered.
 func (p *Parser) LoadFromFile(iniFile string) (err error) {
 	dat, err := os.ReadFile(iniFile)
 	if err != nil {
@@ -34,6 +42,8 @@ func (p *Parser) LoadFromFile(iniFile string) (err error) {
 	return err
 }
 
+// SaveToFile saves ini to outputFile.
+// It returns any parsing error encountered.
 func (p *Parser) SaveToFile(outputFile string) (err error) {
 	file, err := os.Create(outputFile)
 	if err != nil {
@@ -44,10 +54,14 @@ func (p *Parser) SaveToFile(outputFile string) (err error) {
 	return nil
 }
 
+// GetSections gets the ini data as a map in which keys are section names
+// and values are maps of keys and values from the ini data.
 func (p *Parser) GetSections() map[string]map[string]string {
 	return p.ini
 }
 
+// GetSectionNames gets the name of sections in the ini data.
+// It returns the section names as a slice of strings.
 func (p *Parser) GetSectionNames() []string {
 	keys := []string{}
 	for key := range p.ini {
@@ -55,6 +69,10 @@ func (p *Parser) GetSectionNames() []string {
 	}
 	return keys
 }
+
+// Get gets the value of key in section from the ini data.
+// A section and a key in that section must exist in order to get the value or it will return an error
+// It returns the value as a string and returns any error encountered
 func (p *Parser) Get(section, key string) (string, error) {
 
 	if _, ok := p.ini[section]; !ok {
@@ -65,6 +83,9 @@ func (p *Parser) Get(section, key string) (string, error) {
 	}
 	return p.ini[section][key], nil
 }
+
+// Set sets the value of a key in section to the ini data.
+// If no section exists with input section name a new section will be created and same for keys.
 func (p *Parser) Set(section, key, value string) error {
 	if _, ok := p.ini[section]; !ok {
 		return ErrSectionNotFound
@@ -76,6 +97,8 @@ func (p *Parser) Set(section, key, value string) error {
 	return nil
 }
 
+// ToString converts the ini data to string in the ini format.
+// It returns string.
 func (p *Parser) ToString() string {
 	iniText := ""
 	for section, keyValue := range p.ini {
@@ -87,6 +110,7 @@ func (p *Parser) ToString() string {
 	return iniText
 }
 
+// enumeration of line types
 const (
 	emptyLine int = iota
 	sectionLine
@@ -95,6 +119,9 @@ const (
 	unsupportedLine
 )
 
+// LineType returns the type of the ini line.
+// It could be a section line, key-value line, comment line, empty line or an unsupported line
+// It returns int equivilant to which line the input is and any error encountered
 func LineType(line string) (int, error) {
 	if len(line) == 0 {
 		return emptyLine, nil
@@ -114,6 +141,8 @@ func LineType(line string) (int, error) {
 
 }
 
+// ParseSection parses the section line and returns the name of the section as a string.
+// It returns an error if the section name is empty.
 func ParseSection(sectionLine string) (string, error) {
 	if len(sectionLine) == 2 {
 		return "", ErrEmptySectionName
@@ -121,6 +150,8 @@ func ParseSection(sectionLine string) (string, error) {
 	return sectionLine[1 : len(sectionLine)-1], nil
 }
 
+// ParseKeyValue parses the key-value line and returns a key string and a value string.
+// It returns an error if the key is empty
 func ParseKeyValue(keyValueLine string) (string, string, error) {
 	i := strings.Index(keyValueLine, "=")
 	key := keyValueLine[0:i]
@@ -133,6 +164,9 @@ func ParseKeyValue(keyValueLine string) (string, string, error) {
 	return key, value, nil
 }
 
+// Parse parses the iniText and returns it as a map in which keys are section names
+// and values are maps of keys and values from the ini data.
+// It returns an error if global keys are used.
 func Parse(iniText string) (map[string]map[string]string, error) {
 	scanner := bufio.NewScanner(strings.NewReader(iniText))
 	parsedText := make(map[string]map[string]string)
@@ -171,16 +205,6 @@ func Parse(iniText string) (map[string]map[string]string, error) {
 	return parsedText, nil
 }
 func main() {
-	// 	iniText := `; last modified 1 April 2001 by John Doe
-	// [owner]
-	// name = John Doe
-	// organization = Acme Widgets Inc.
-
-	// [database]
-	// ; use IP address in case network name resolution is not working
-	// server = 192.0.2.62
-	// port = 143
-	// file = "payroll.dat"`
 	parser := Parser{}
 	parser.LoadFromFile("fil.ini")
 	parser.SaveToFile("output.ini")
