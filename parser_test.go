@@ -143,24 +143,24 @@ file = "payroll.dat"`
 	}
 }
 
-func TestGetSections(t *testing.T) {
+func TestGetSectionNames(t *testing.T) {
 	parsedText := ParsedText{
 		"owner":    {"name": "John Doe", "organization": "Acme Widgets Inc."},
 		"database": {"server": "192.0.2.62", "port": "143", "file": "\"payroll.dat\""},
 	}
-	got := parsedText.GetSections()
+	got := parsedText.GetSectionNames()
 	want := []string{"owner", "database"}
 
 	if !reflect.DeepEqual(got, want) {
 		t.Errorf("got %v want %v", got, want)
 	}
 }
-func TestGetKeys(t *testing.T) {
+func TestGet(t *testing.T) {
 	parsedText := ParsedText{
 		"owner":    {"name": "John Doe", "organization": "Acme Widgets Inc."},
 		"database": {"server": "192.0.2.62", "port": "143", "file": "\"payroll.dat\""},
 	}
-	got := parsedText.GetKeys("owner")
+	got := parsedText.Get("owner")
 	want := []string{"name", "organization"}
 
 	if !reflect.DeepEqual(got, want) {

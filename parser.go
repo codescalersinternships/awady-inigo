@@ -9,14 +9,14 @@ import (
 
 type ParsedText map[string]map[string]string
 
-func (p ParsedText) GetSections() []string {
+func (p ParsedText) GetSectionNames() []string {
 	keys := []string{}
 	for key, _ := range p {
 		keys = append(keys, key)
 	}
 	return keys
 }
-func (p ParsedText) GetKeys(section string) []string {
+func (p ParsedText) Get(section string) []string {
 
 	keys := []string{}
 	for key, _ := range p[section] {
@@ -113,6 +113,6 @@ server = 192.0.2.62
 port = 143
 file = "payroll.dat"`
 	parsedText, _ := Parse(iniText)
-	fmt.Println(parsedText.GetSections())
-	fmt.Println(parsedText.GetKeys("database"))
+	fmt.Println(parsedText.GetSectionNames())
+	fmt.Println(parsedText.Get("database"))
 }
