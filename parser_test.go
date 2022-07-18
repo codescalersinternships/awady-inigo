@@ -143,6 +143,20 @@ file = "payroll.dat"`
 	}
 }
 
+func TestGetSections(t *testing.T) {
+	parser := Parser{}
+	parser.LoadFromFile("file.ini")
+	got := parser.GetSections()
+	want := map[string]map[string]string{
+		"owner":    {"name": "John Doe", "organization": "Acme Widgets Inc."},
+		"database": {"server": "192.0.2.62", "port": "143", "file": "\"payroll.dat\""},
+	}
+
+	if !reflect.DeepEqual(got, want) {
+		t.Errorf("got %#v want %#v", got, want)
+	}
+}
+
 func TestGetSectionNames(t *testing.T) {
 	parser := Parser{map[string]map[string]string{
 		"owner":    {"name": "John Doe", "organization": "Acme Widgets Inc."},

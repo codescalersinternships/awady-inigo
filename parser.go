@@ -29,6 +29,10 @@ func (p *Parser) LoadFromFile(inifile string) (err error) {
 	return err
 }
 
+func (p *Parser) GetSections() map[string]map[string]string {
+	return p.ini
+}
+
 func (p *Parser) GetSectionNames() []string {
 	keys := []string{}
 	for key, _ := range p.ini {
