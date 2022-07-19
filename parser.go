@@ -46,12 +46,16 @@ func (p *Parser) LoadFromFile(iniFile string) (err error) {
 // It returns any parsing error encountered.
 func (p *Parser) SaveToFile(outputFile string) (err error) {
 	file, err := os.Create(outputFile)
+	defer file.Close()
 	if err != nil {
-		panic(err)
+		return err
 	}
-	file.WriteString(p.ToString())
-	file.Close()
-	return nil
+	_, err = file.WriteString(p.ToString())
+	if err != nil {
+		return err
+	}
+	err = file.Close()
+	return err
 }
 
 // GetSections gets the ini data as a map in which keys are section names
