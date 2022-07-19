@@ -356,7 +356,7 @@ func TestToString(t *testing.T) {
 	parser := Parser{}
 	parser.LoadFromFile("file.ini")
 
-	got, err := Parse(parser.ToString())
+	got, err := Parse(parser.String())
 	want := map[string]map[string]string{
 		"owner":    {"name": "John Doe", "organization": "Acme Widgets Inc."},
 		"database": {"server": "192.0.2.62", "port": "143", "file": "\"payroll.dat\""},

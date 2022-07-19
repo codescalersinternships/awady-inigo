@@ -3,6 +3,7 @@ package main
 import (
 	"bufio"
 	"errors"
+	"fmt"
 	"os"
 	"strings"
 )
@@ -50,7 +51,7 @@ func (p *Parser) SaveToFile(outputFile string) (err error) {
 	if err != nil {
 		return err
 	}
-	_, err = file.WriteString(p.ToString())
+	_, err = file.WriteString(p.String())
 	if err != nil {
 		return err
 	}
@@ -99,7 +100,7 @@ func (p *Parser) Set(section, key, value string) {
 
 // ToString converts the ini data to string in the ini format.
 // It returns string.
-func (p *Parser) ToString() string {
+func (p *Parser) String() string {
 	iniText := ""
 	for section, keyValue := range p.ini {
 		iniText += "[" + section + "]\n"
@@ -107,7 +108,7 @@ func (p *Parser) ToString() string {
 			iniText += key + " = " + value + "\n"
 		}
 	}
-	return iniText
+	return fmt.Sprint(iniText)
 }
 
 // enumeration of line types
@@ -203,4 +204,10 @@ func Parse(iniText string) (map[string]map[string]string, error) {
 		parsedText[currentSection][key] = value
 	}
 	return parsedText, nil
+}
+
+func main() {
+	parser := Parser{}
+	parser.LoadFromFile("file.ini")
+	parser.SaveToFile("output2.ini")
 }
