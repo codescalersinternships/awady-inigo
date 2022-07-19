@@ -190,6 +190,52 @@ file = "payroll.dat"`
 	})
 }
 
+func TestLoadFromString(t *testing.T) {
+	t.Run("passing ini string", func(t *testing.T) {
+		iniText := `; last modified 1 April 2001 by John Doe
+[owner]
+name = John Doe
+organization = Acme Widgets Inc.
+
+[database]
+; use IP address in case network name resolution is not working
+server = 192.0.2.62     
+port = 143
+file = "payroll.dat"`
+		parser := Parser{}
+		err := parser.LoadFromString(iniText)
+		assertNoError(t, err)
+
+		want := Parser{map[string]map[string]string{
+			"owner":    {"name": "John Doe", "organization": "Acme Widgets Inc."},
+			"database": {"server": "192.0.2.62", "port": "143", "file": "\"payroll.dat\""},
+		}}
+
+		if !reflect.DeepEqual(parser, want) {
+			t.Errorf("got %v want %v", parser, want)
+		}
+
+	})
+	t.Run("passing ini string with unsupported global keys", func(t *testing.T) {
+		iniText := `; last modified 1 April 2001 by John Doe
+name = test
+[owner]
+name = John Doe
+organization = Acme Widgets Inc.
+
+[database]
+; use IP address in case network name resolution is not working
+server = 192.0.2.62     
+port = 143
+file = "payroll.dat"`
+		parser := Parser{}
+		err := parser.LoadFromString(iniText)
+		want := ErrGlobalKey
+		assertError(t, err, want)
+
+	})
+}
+
 func TestGetSections(t *testing.T) {
 	parser := Parser{}
 	parser.LoadFromFile("file.ini")
