@@ -200,9 +200,3 @@ func Parse(iniText string) (map[string]map[string]string, error) {
 	}
 	return parsedText, nil
 }
-func main() {
-	parser := Parser{}
-	parser.LoadFromFile("fil.ini")
-	parser.SaveToFile("output.ini")
-
-}
